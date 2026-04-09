@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { SRSCard, VocabEntry, CEFRLevel, ConfidenceRating } from '../types';
 import { generateDailySession } from '../engine/session';
 import type { SessionPlan } from '../engine/session';
@@ -24,6 +24,18 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
   const [sessionXp, setSessionXp] = useState(0);
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
+
+  const stableCard = useMemo(() => {
+    const levelOrder: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+    const userLevelIdx = levelOrder.indexOf(userLevel);
+    const levelCards = cards.filter(c => levelOrder.indexOf(c.level) <= userLevelIdx);
+    const pool = getDueCards(levelCards.length > 0 ? levelCards : cards).slice(0, 20);
+    const fallback = levelCards.length > 0 ? levelCards : cards;
+    return pool[Math.floor(Math.random() * Math.max(pool.length, 1))]
+        || fallback[Math.floor(Math.random() * Math.max(fallback.length, 1))];
+  }, [currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stableIsReverse = useMemo(() => Math.random() > 0.5, [currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const sessionPlan = generateDailySession(cards, userLevel, availableVocab, settings, 20);
@@ -205,15 +217,7 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
         };
         const info = exerciseTypes[exercise.type];
 
-        // Generate a quick translation exercise — prefer due cards at user's level
-        const levelOrder: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-        const userLevelIdx = levelOrder.indexOf(userLevel);
-        const levelCards = cards.filter(c => levelOrder.indexOf(c.level) <= userLevelIdx);
-        const pool = getDueCards(levelCards.length > 0 ? levelCards : cards).slice(0, 20);
-        const fallback = levelCards.length > 0 ? levelCards : cards;
-        const randomCard = pool[Math.floor(Math.random() * Math.max(pool.length, 1))] || fallback[Math.floor(Math.random() * Math.max(fallback.length, 1))];
-
-        if (!randomCard) {
+        if (!stableCard) {
           return (
             <div className="bg-bg-card rounded-2xl p-6 border border-border text-center">
               <div className="text-2xl mb-3">{info.icon}</div>
@@ -226,18 +230,16 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
           );
         }
 
-        const isReverse = Math.random() > 0.5;
-
         return (
           <div className="bg-bg-card rounded-2xl p-6 border border-border">
             <div className="text-xs text-text-dim uppercase tracking-wide mb-1 flex items-center gap-2">
               <span>{info.icon}</span> {info.label}
             </div>
             <div className="text-sm text-text-dim mb-4">
-              {isReverse ? 'Przetłumacz na włoski:' : 'Przetłumacz na polski:'}
+              {stableIsReverse ? 'Przetłumacz na włoski:' : 'Przetłumacz na polski:'}
             </div>
             <div className="text-xl font-bold text-text-bright mb-4">
-              {isReverse ? randomCard.polish : randomCard.italian}
+              {stableIsReverse ? stableCard.polish : stableCard.italian}
             </div>
 
             {!showResult ? (
@@ -247,7 +249,7 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
                   value={userInput}
                   onChange={e => setUserInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && userInput.trim() && setShowResult(true)}
-                  placeholder={isReverse ? 'Wpisz po włosku...' : 'Wpisz po polsku...'}
+                  placeholder={stableIsReverse ? 'Wpisz po włosku...' : 'Wpisz po polsku...'}
                   className="w-full px-4 py-3 bg-bg-input border border-border rounded-xl text-text placeholder-text-dim focus:outline-none focus:border-accent"
                   autoFocus
                 />
@@ -264,7 +266,7 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
             ) : (
               <div className="animate-fade-in">
                 {(() => {
-                  const expected = isReverse ? randomCard.italian : randomCard.polish;
+                  const expected = stableIsReverse ? stableCard.italian : stableCard.polish;
                   const inp = userInput.trim().toLowerCase();
                   const exp = expected.toLowerCase();
                   const correct = inp === exp || inp.includes(exp) || exp.includes(inp) || levenshtein(inp, exp) <= 2;
