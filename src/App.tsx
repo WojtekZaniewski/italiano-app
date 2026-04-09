@@ -235,7 +235,7 @@ export default function App() {
 
   return (
     <AuthGate onCloudLoad={handleCloudLoad}>
-      <Layout currentPage={page} onNavigate={setPage}>
+      <Layout currentPage={page} onNavigate={setPage} immersionMode={progress.settings.immersionMode}>
         <Suspense fallback={<PageSpinner />}>
           {renderPage()}
         </Suspense>

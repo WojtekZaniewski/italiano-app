@@ -9,7 +9,7 @@ export function Dashboard({ progress, cards, onNavigate }: {
 }) {
   const level = getLevel(progress.totalXp);
   const stats = getCardStats(cards);
-  const challenges = getWeeklyChallenges(progress);
+  const challenges = getWeeklyChallenges(progress, cards);
 
   const today = new Date().toISOString().split('T')[0];
   const todayXp = progress.dailyXpHistory[today] || 0;

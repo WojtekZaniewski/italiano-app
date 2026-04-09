@@ -14,9 +14,10 @@ const NAV_ITEMS = [
   { id: 'settings', label: 'Impostazioni', labelPl: 'Ustawienia', icon: '⚙️' },
 ];
 
-export function Navigation({ currentPage, onNavigate }: {
+export function Navigation({ currentPage, onNavigate, immersionMode = false }: {
   currentPage: string;
   onNavigate: (page: string) => void;
+  immersionMode?: boolean;
 }) {
   return (
     <nav className="flex-1 py-2 overflow-y-auto">
@@ -32,8 +33,8 @@ export function Navigation({ currentPage, onNavigate }: {
         >
           <span className="text-base">{item.icon}</span>
           <div>
-            <div className="font-medium">{item.label}</div>
-            <div className="text-xs opacity-60">{item.labelPl}</div>
+            <div className="font-medium">{immersionMode ? item.label : item.labelPl}</div>
+            {!immersionMode && <div className="text-xs opacity-60">{item.label}</div>}
           </div>
         </button>
       ))}

@@ -1,4 +1,4 @@
-import type { UserProgress, Achievement } from '../types';
+import type { UserProgress, Achievement, SRSCard } from '../types';
 
 // XP rewards
 export const XP_REWARDS = {
@@ -120,13 +120,38 @@ export function checkAchievements(progress: UserProgress): Achievement[] {
   return newAchievements;
 }
 
-export function getWeeklyChallenges(progress: UserProgress) {
-  const challenges = [
-    { id: 'learn_50', title: 'Naucz się 50 nowych słów', target: 50, current: 0, unit: 'słów', xpReward: 200 },
-    { id: 'complete_5_scenarios', title: 'Ukończ 5 scenariuszy', target: 5, current: 0, unit: 'scenariuszy', xpReward: 150 },
-    { id: 'shadow_30', title: '30 minut shadowing', target: 30, current: 0, unit: 'minut', xpReward: 100 },
-    { id: 'perfect_10', title: '10 bezbłędnych odpowiedzi z rzędu', target: 10, current: 0, unit: 'odpowiedzi', xpReward: 100 },
-    { id: 'streak_7', title: 'Utrzymaj passę 7 dni', target: 7, current: progress.streak, unit: 'dni', xpReward: 250 },
+export function getWeeklyChallenges(progress: UserProgress, cards: SRSCard[]) {
+  // Sum XP earned in the last 7 days
+  const today = new Date();
+  let weeklyXp = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today.getTime() - i * 86400000).toISOString().split('T')[0];
+    weeklyXp += progress.dailyXpHistory[d] ?? 0;
+  }
+
+  // Words that reached box 3+ (considered "learned")
+  const wordsLearned = cards.filter(c => c.box >= 3).length;
+
+  return [
+    {
+      id: 'weekly_xp', title: 'Zdobądź 500 XP w tym tygodniu',
+      target: 500, current: Math.min(weeklyXp, 500), unit: 'XP', xpReward: 150,
+    },
+    {
+      id: 'words_learned', title: 'Opanuj 20 słów (skrzynka 3+)',
+      target: 20, current: Math.min(wordsLearned, 20), unit: 'słów', xpReward: 200,
+    },
+    {
+      id: 'sessions', title: 'Ukończ 5 sesji dziennych',
+      target: 5, current: Math.min(progress.sessionsCompleted, 5), unit: 'sesji', xpReward: 100,
+    },
+    {
+      id: 'streak', title: 'Utrzymaj passę 7 dni',
+      target: 7, current: Math.min(progress.streak, 7), unit: 'dni', xpReward: 250,
+    },
+    {
+      id: 'total_time', title: 'Spędź 60 minut na nauce',
+      target: 60, current: Math.min(progress.totalMinutes, 60), unit: 'minut', xpReward: 100,
+    },
   ];
-  return challenges;
 }

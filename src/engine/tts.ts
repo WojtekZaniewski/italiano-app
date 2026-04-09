@@ -16,7 +16,27 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
   speechSynthesis.getVoices();
 }
 
-export function speakItalian(text: string, rate: number = 1.0): Promise<void> {
+/** Read TTS speed from saved settings (avoids prop-drilling into every component). */
+export function getTtsSpeed(): number {
+  try {
+    const raw = localStorage.getItem('italiano_progress');
+    if (!raw) return 1.0;
+    const p = JSON.parse(raw);
+    return p?.settings?.ttsSpeed ?? 1.0;
+  } catch { return 1.0; }
+}
+
+/** Read auto-play setting from saved settings. */
+export function isAutoPlayEnabled(): boolean {
+  try {
+    const raw = localStorage.getItem('italiano_progress');
+    if (!raw) return true;
+    const p = JSON.parse(raw);
+    return p?.settings?.autoPlayAudio ?? true;
+  } catch { return true; }
+}
+
+export function speakItalian(text: string, rate: number = getTtsSpeed()): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       reject(new Error('Speech synthesis not supported'));

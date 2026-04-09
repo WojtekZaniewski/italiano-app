@@ -3,16 +3,17 @@ import type { ReactNode } from 'react';
 import { Navigation } from './Navigation';
 
 const BOTTOM_TABS = [
-  { id: 'dashboard',  icon: '📊', label: 'Panel' },
-  { id: 'session',    icon: '🎯', label: 'Sesja' },
-  { id: 'flashcards', icon: '🃏', label: 'Fiszki' },
-  { id: 'settings',   icon: '⚙️', label: 'Ustawienia' },
+  { id: 'dashboard',  icon: '📊', labelPl: 'Panel',      labelIt: 'Pannello' },
+  { id: 'session',    icon: '🎯', labelPl: 'Sesja',      labelIt: 'Sessione' },
+  { id: 'flashcards', icon: '🃏', labelPl: 'Fiszki',     labelIt: 'Ripasso' },
+  { id: 'settings',   icon: '⚙️', labelPl: 'Ustawienia', labelIt: 'Impostazioni' },
 ];
 
-export function Layout({ children, currentPage, onNavigate }: {
+export function Layout({ children, currentPage, onNavigate, immersionMode = false }: {
   children: ReactNode;
   currentPage: string;
   onNavigate: (page: string) => void;
+  immersionMode?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -39,7 +40,7 @@ export function Layout({ children, currentPage, onNavigate }: {
             <h1 className="text-xl font-bold text-accent tracking-wide">Italiano</h1>
             <p className="text-xs text-text-dim mt-1">Impara l'italiano</p>
           </div>
-          <Navigation currentPage={currentPage} onNavigate={onNavigate} />
+          <Navigation currentPage={currentPage} onNavigate={onNavigate} immersionMode={immersionMode} />
         </aside>
 
         {/* Mobile full-menu overlay (all 13 items) */}
@@ -50,7 +51,7 @@ export function Layout({ children, currentPage, onNavigate }: {
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-5 border-b border-border">
-                <h1 className="text-xl font-bold text-accent">Moduły</h1>
+                <h1 className="text-xl font-bold text-accent">{immersionMode ? 'Moduli' : 'Moduły'}</h1>
                 <button onClick={() => setMenuOpen(false)} className="text-text-dim hover:text-text p-1">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M6 6l12 12M6 18L18 6" />
@@ -58,7 +59,7 @@ export function Layout({ children, currentPage, onNavigate }: {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto">
-                <Navigation currentPage={currentPage} onNavigate={(page) => { onNavigate(page); setMenuOpen(false); }} />
+                <Navigation currentPage={currentPage} onNavigate={(page) => { onNavigate(page); setMenuOpen(false); }} immersionMode={immersionMode} />
               </div>
             </aside>
           </div>
@@ -83,7 +84,7 @@ export function Layout({ children, currentPage, onNavigate }: {
             }`}
           >
             <span className="text-xl leading-none">{tab.icon}</span>
-            <span className="text-[10px] font-medium">{tab.label}</span>
+            <span className="text-[10px] font-medium">{immersionMode ? tab.labelIt : tab.labelPl}</span>
           </button>
         ))}
         <button
