@@ -14,6 +14,7 @@ export function GoldlistModule({ onXp }: { onXp: (xp: number) => void }) {
   const save = (updated: GoldlistEntry[]) => {
     setEntries(updated);
     saveGoldlist(updated);
+    window.dispatchEvent(new Event('italiano_data_changed'));
   };
 
   const today = new Date().toISOString().split('T')[0];

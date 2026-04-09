@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Layout } from './components/Layout';
 import type { UserProgress, SRSCard, CEFRLevel } from './types';
-import { loadProgress, saveProgress, loadSRSCards, saveSRSCards } from './engine/storage';
+import { loadProgress, saveProgress, loadSRSCards, saveSRSCards, loadGoldlist, loadWritings, saveGoldlist, saveWritings } from './engine/storage';
 import { addXp, updateStreak, checkAchievements } from './engine/scoring';
+import { saveToCloud, mergeOnLogin } from './engine/cloudSync';
+import type { CloudData } from './engine/cloudSync';
+import { AuthGate } from './components/AuthGate';
 import { allVocabulary } from './data/all-vocabulary';
 import { grammarLessons } from './data/grammar';
 import { allScenarios } from './data/all-scenarios';
@@ -39,8 +42,49 @@ export default function App() {
   const [progress, setProgress] = useState<UserProgress>(loadProgress);
   const [cards, setCards] = useState<SRSCard[]>(loadSRSCards);
 
-  useEffect(() => { saveProgress(progress); }, [progress]);
-  useEffect(() => { saveSRSCards(cards); }, [cards]);
+  const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleSave = useCallback((p: UserProgress, c: SRSCard[]) => {
+    if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
+    cloudSaveTimer.current = setTimeout(() => {
+      const data: CloudData = {
+        progress: p,
+        srsCards: c,
+        goldlist: loadGoldlist(),
+        writings: loadWritings(),
+        writingErrors: JSON.parse(localStorage.getItem('italiano_writing_errors') ?? '[]'),
+      };
+      saveToCloud(data);
+    }, 2000);
+  }, []);
+
+  const handleCloudLoad = useCallback((cloudData: CloudData) => {
+    const local: CloudData = {
+      progress,
+      srsCards: cards,
+      goldlist: loadGoldlist(),
+      writings: loadWritings(),
+      writingErrors: JSON.parse(localStorage.getItem('italiano_writing_errors') ?? '[]'),
+    };
+    const { winner, source } = mergeOnLogin(local, cloudData);
+    if (source === 'cloud') {
+      setProgress(winner.progress);
+      setCards(winner.srsCards);
+      saveGoldlist(winner.goldlist);
+      saveWritings(winner.writings);
+      localStorage.setItem('italiano_writing_errors', JSON.stringify(winner.writingErrors));
+    }
+    saveToCloud(winner);
+  }, [progress, cards]);
+
+  useEffect(() => { saveProgress(progress); scheduleSave(progress, cards); }, [progress]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { saveSRSCards(cards); scheduleSave(progress, cards); }, [cards]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const handler = () => scheduleSave(progress, cards);
+    window.addEventListener('italiano_data_changed', handler);
+    return () => window.removeEventListener('italiano_data_changed', handler);
+  }, [progress, cards, scheduleSave]);
 
   useEffect(() => {
     setProgress(p => updateStreak(p));
@@ -189,10 +233,12 @@ export default function App() {
   };
 
   return (
-    <Layout currentPage={page} onNavigate={setPage}>
-      <Suspense fallback={<PageSpinner />}>
-        {renderPage()}
-      </Suspense>
-    </Layout>
+    <AuthGate onCloudLoad={handleCloudLoad}>
+      <Layout currentPage={page} onNavigate={setPage}>
+        <Suspense fallback={<PageSpinner />}>
+          {renderPage()}
+        </Suspense>
+      </Layout>
+    </AuthGate>
   );
 }

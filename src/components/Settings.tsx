@@ -1,5 +1,6 @@
 import type { UserProgress } from '../types';
 import { resetAllData, exportData } from '../engine/storage';
+import { signOut } from '../engine/cloudSync';
 
 export function Settings({ progress, onUpdate }: {
   progress: UserProgress;
@@ -169,6 +170,12 @@ export function Settings({ progress, onUpdate }: {
             className="px-4 py-2 bg-danger/10 border border-danger/30 rounded-lg text-sm text-danger hover:bg-danger/20"
           >
             🗑️ Resetuj dane
+          </button>
+          <button
+            onClick={() => signOut()}
+            className="px-4 py-2 bg-bg border border-border rounded-lg text-sm text-text-dim hover:bg-bg-hover"
+          >
+            🚪 Wyloguj się
           </button>
         </div>
       </div>

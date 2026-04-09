@@ -28,6 +28,7 @@ function loadErrorRecords(): ErrorRecord[] {
 
 function saveErrorRecords(records: ErrorRecord[]): void {
   localStorage.setItem(ERROR_STORAGE_KEY, JSON.stringify(records));
+  window.dispatchEvent(new Event('italiano_data_changed'));
 }
 
 function trackErrors(corrections: Correction[]): void {
