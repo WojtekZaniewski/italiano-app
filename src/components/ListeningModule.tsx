@@ -221,7 +221,7 @@ export function ListeningModule({ userLevel, onXp }: Props) {
   };
 
   if (phase === 'list') {
-    const grouped = (['A1', 'A2', 'B1', 'B2', 'C1'] as CEFRLevel[]).reduce((acc, level) => {
+    const grouped = (['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as CEFRLevel[]).reduce((acc, level) => {
       const clips = availableClips.filter(c => c.level === level);
       if (clips.length) acc[level] = clips;
       return acc;
@@ -234,10 +234,15 @@ export function ListeningModule({ userLevel, onXp }: Props) {
           <p className="text-text-dim text-sm">Ćwicz rozumienie ze słuchu w tempie naturalnym lub spowolnionym (0.75x)</p>
         </div>
 
-        {Object.entries(grouped).map(([level, clips]) => (
+        {Object.entries(grouped).map(([level, clips]) => {
+          const isUserLevel = level === userLevel;
+          const isAbove = LEVEL_ORDER.indexOf(level as CEFRLevel) > userLevelIndex;
+          return (
           <div key={level} className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-bold px-2 py-1 rounded-full bg-accent/20 text-accent">{level}</span>
+              <span className={`text-xs font-bold px-2 py-1 rounded-full ${isUserLevel ? 'bg-accent text-bg' : isAbove ? 'bg-info/20 text-info' : 'bg-accent/20 text-accent'}`}>
+                {level}{isUserLevel ? ' ← Twój poziom' : isAbove ? ' (i+1)' : ''}
+              </span>
               <div className="h-px flex-1 bg-border" />
             </div>
             <div className="grid gap-3">
@@ -258,7 +263,8 @@ export function ListeningModule({ userLevel, onXp }: Props) {
               ))}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   }

@@ -13,7 +13,7 @@ export function ReadingModule({ texts, userLevel, onXp }: {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [score, setScore] = useState(0);
-  const [hoveredWord, setHoveredWord] = useState<string | null>(null);
+  const [activeWord, setActiveWord] = useState<string | null>(null);
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
 
   const levelOrder: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -90,7 +90,11 @@ export function ReadingModule({ texts, userLevel, onXp }: {
               Czytaj ponownie
             </button>
             <button
-              onClick={() => { setSelectedText(null); setMode('read'); setQuizIndex(0); setScore(0); onXp(30); }}
+              onClick={() => {
+                const earned = Math.max(5, Math.round(30 * score / total));
+                setSelectedText(null); setMode('read'); setQuizIndex(0); setScore(0);
+                onXp(earned);
+              }}
               className="px-6 py-3 bg-accent text-bg font-semibold rounded-xl hover:bg-accent-dim"
             >
               Następny tekst
@@ -193,11 +197,15 @@ export function ReadingModule({ texts, userLevel, onXp }: {
         <h3 className="text-lg font-semibold text-text-bright mb-1">{selectedText.title}</h3>
         <div className="text-xs text-text-dim mb-4 uppercase">{selectedText.level} • {selectedText.category}</div>
 
-        <div className="leading-relaxed text-lg relative">
+        <div
+          className="leading-relaxed text-lg relative"
+          onClick={e => { if (e.target === e.currentTarget) setActiveWord(null); }}
+        >
           {words.map((word, i) => {
             const clean = word.toLowerCase().replace(/[,.!?;:"""''()]/g, '');
             const translation = selectedText.translations[clean];
-            const isHovered = hoveredWord === `${i}-${word}`;
+            const key = `${i}-${word}`;
+            const isActive = activeWord === key;
 
             if (!clean.trim()) return <span key={i}>{word}</span>;
 
@@ -205,16 +213,20 @@ export function ReadingModule({ texts, userLevel, onXp }: {
               <span
                 key={i}
                 className={`relative cursor-pointer transition-colors ${
-                  translation ? 'hover:text-accent hover:underline underline-offset-4' : ''
-                } ${isHovered ? 'text-accent' : 'text-text-bright'}`}
-                onMouseEnter={() => setHoveredWord(`${i}-${word}`)}
-                onMouseLeave={() => setHoveredWord(null)}
+                  translation ? 'underline underline-offset-4 decoration-dotted decoration-accent/40' : ''
+                } ${isActive ? 'text-accent' : 'text-text-bright'}`}
                 onClick={() => {
-                  if (translation && isSpeechSupported()) speakItalian(word);
+                  if (!translation) return;
+                  if (isActive) {
+                    setActiveWord(null);
+                  } else {
+                    setActiveWord(key);
+                    if (isSpeechSupported()) speakItalian(clean);
+                  }
                 }}
               >
                 {word}
-                {isHovered && translation && (
+                {isActive && translation && (
                   <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-bg-hover border border-border rounded-lg text-sm text-accent whitespace-nowrap z-10 shadow-lg animate-fade-in">
                     {translation}
                   </span>

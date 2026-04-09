@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { SRSCard, ConfidenceRating, VocabEntry } from '../types';
+import type { SRSCard, ConfidenceRating, VocabEntry, CEFRLevel } from '../types';
 import { getDueCards, reviewCard, createCardFromVocab } from '../engine/srs';
 import { speakItalian, isSpeechSupported } from '../engine/tts';
 import { XP_REWARDS } from '../engine/scoring';
 
-export function FlashCards({ cards, onUpdateCards, onXp, availableVocab }: {
+export function FlashCards({ cards, onUpdateCards, onXp, availableVocab, userLevel }: {
   cards: SRSCard[];
   onUpdateCards: (cards: SRSCard[]) => void;
   onXp: (xp: number) => void;
   availableVocab: VocabEntry[];
+  userLevel: CEFRLevel;
 }) {
+  const levelOrder: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   const [dueCards, setDueCards] = useState<SRSCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -25,9 +27,12 @@ export function FlashCards({ cards, onUpdateCards, onXp, availableVocab }: {
 
   const currentCard = mode === 'review' ? dueCards[currentIndex] : null;
 
-  // New vocab that isn't already a card
+  // New vocab filtered to user's level and below (don't show B2 words to an A1 learner)
   const existingIds = new Set(cards.map(c => c.italian));
-  const newVocab = availableVocab.filter(v => !existingIds.has(v.italian));
+  const userLevelIdx = levelOrder.indexOf(userLevel);
+  const newVocab = availableVocab.filter(v =>
+    !existingIds.has(v.italian) && levelOrder.indexOf(v.level) <= userLevelIdx
+  );
   const currentNewVocab = newVocab[newCardIndex];
 
   const handleConfidence = useCallback((confidence: ConfidenceRating) => {

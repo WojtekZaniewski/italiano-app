@@ -205,9 +205,13 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
         };
         const info = exerciseTypes[exercise.type];
 
-        // Generate a quick translation exercise
-        const dueCards = getDueCards(cards).slice(0, 20);
-        const randomCard = dueCards[Math.floor(Math.random() * Math.max(dueCards.length, 1))] || cards[Math.floor(Math.random() * Math.max(cards.length, 1))];
+        // Generate a quick translation exercise — prefer due cards at user's level
+        const levelOrder: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+        const userLevelIdx = levelOrder.indexOf(userLevel);
+        const levelCards = cards.filter(c => levelOrder.indexOf(c.level) <= userLevelIdx);
+        const pool = getDueCards(levelCards.length > 0 ? levelCards : cards).slice(0, 20);
+        const fallback = levelCards.length > 0 ? levelCards : cards;
+        const randomCard = pool[Math.floor(Math.random() * Math.max(pool.length, 1))] || fallback[Math.floor(Math.random() * Math.max(fallback.length, 1))];
 
         if (!randomCard) {
           return (
@@ -261,7 +265,9 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
               <div className="animate-fade-in">
                 {(() => {
                   const expected = isReverse ? randomCard.italian : randomCard.polish;
-                  const correct = userInput.trim().toLowerCase() === expected.toLowerCase();
+                  const inp = userInput.trim().toLowerCase();
+                  const exp = expected.toLowerCase();
+                  const correct = inp === exp || inp.includes(exp) || exp.includes(inp) || levenshtein(inp, exp) <= 2;
                   return (
                     <>
                       <div className={`p-4 rounded-lg mb-3 ${correct ? 'bg-accent/10 border border-accent/30' : 'bg-danger/10 border border-danger/30'}`}>
@@ -278,7 +284,7 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
                         onClick={() => {
                           setSessionCorrect(c => c + (correct ? 1 : 0));
                           setSessionTotal(t => t + 1);
-                          addXpLocal(correct ? 15 : 5);
+                          addXpLocal(correct ? XP_REWARDS.srsCorrect : XP_REWARDS.srsIncorrect);
                           nextExercise();
                         }}
                         className="w-full py-3 bg-accent text-bg font-semibold rounded-xl hover:bg-accent-dim"
@@ -317,4 +323,13 @@ export function DailySession({ cards, onUpdateCards, onXp, onComplete, userLevel
       {renderExercise()}
     </div>
   );
+}
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
 }

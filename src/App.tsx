@@ -151,6 +151,7 @@ export default function App() {
             onUpdateCards={handleUpdateCards}
             onXp={handleXp}
             availableVocab={allVocabulary}
+            userLevel={progress.level}
           />
         );
 
